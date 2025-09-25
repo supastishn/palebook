@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { logout } from '../store/slices/authSlice';
+import { toMediaUrl } from '../utils/media';
+import NotificationsBell from './NotificationsBell';
 
 const NavbarContainer = styled.nav`
   position: fixed;
@@ -151,12 +153,22 @@ const Navbar = () => {
         <SearchInput
           type="text"
           placeholder="Search Palebook"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const val = e.currentTarget.value;
+              if (val?.trim()) navigate(`/search?q=${encodeURIComponent(val.trim())}`);
+            }
+          }}
         />
       </SearchBar>
 
       <NavActions>
         <NavLink to="/">Home</NavLink>
         <NavLink to="/friends">Friends</NavLink>
+        <NavLink to="/saved">Saved</NavLink>
+        <NavLink to="/pages">Pages</NavLink>
+        <NavLink to="/groups">Groups</NavLink>
+        <NotificationsBell />
 
         <ProfileDropdown>
           <ProfileButton
@@ -164,7 +176,7 @@ const Navbar = () => {
           >
             <Avatar>
               {user?.avatar ? (
-                <img src={user.avatar} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
+                <img src={toMediaUrl(user.avatar)} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
               ) : (
                 getInitials(user?.firstName, user?.lastName)
               )}

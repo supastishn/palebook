@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const Notification = require('../models/Notification');
 
 const router = express.Router();
 
@@ -46,6 +47,22 @@ router.post('/request', auth, [
     });
 
     await recipient.save();
+    // notify recipient
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(String(recipientId)).emit('notification', {
+          type: 'friend:request',
+          actorId: String(req.user._id),
+          createdAt: new Date().toISOString()
+        });
+      }
+      await Notification.create({
+        recipient: recipientId,
+        actor: req.user._id,
+        type: 'friend:request',
+      }).catch(() => {});
+    } catch (_) {}
 
     res.json({ message: 'Friend request sent successfully' });
   } catch (error) {
@@ -90,6 +107,23 @@ router.post('/accept', auth, [
     user.friendRequests.splice(requestIndex, 1);
 
     await Promise.all([user.save(), requester.save()]);
+
+    // notify requester
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(String(requesterId)).emit('notification', {
+          type: 'friend:accept',
+          actorId: String(req.user._id),
+          createdAt: new Date().toISOString()
+        });
+      }
+      await Notification.create({
+        recipient: requesterId,
+        actor: req.user._id,
+        type: 'friend:accept',
+      }).catch(() => {});
+    } catch (_) {}
 
     res.json({ message: 'Friend request accepted' });
   } catch (error) {

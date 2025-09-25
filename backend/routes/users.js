@@ -10,7 +10,7 @@ const router = express.Router();
 // Multer configuration for avatar uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/avatars/');
+    cb(null, path.join(__dirname, '..', 'uploads', 'avatars') + path.sep);
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
@@ -80,7 +80,7 @@ router.put('/profile', auth, upload.single('avatar'), [
     }
 
     const updates = {};
-    const allowedUpdates = ['firstName', 'lastName', 'bio', 'location', 'website', 'dateOfBirth'];
+  const allowedUpdates = ['firstName', 'lastName', 'bio', 'location', 'website', 'dateOfBirth'];
 
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -89,7 +89,7 @@ router.put('/profile', auth, upload.single('avatar'), [
     });
 
     if (req.file) {
-      updates.avatar = req.file.path;
+      updates.avatar = req.file.path.replace(/^.*uploads\//, '/uploads/');
     }
 
     const user = await User.findByIdAndUpdate(
@@ -102,6 +102,23 @@ router.put('/profile', auth, upload.single('avatar'), [
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ error: 'Server error while updating profile' });
+  }
+});
+
+// Upload/update cover photo
+router.put('/cover', auth, upload.single('cover'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const coverPhoto = req.file.path.replace(/^.*uploads\//, '/uploads/');
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { coverPhoto },
+      { new: true }
+    ).select('-password');
+    res.json({ coverPhoto: user.coverPhoto });
+  } catch (error) {
+    console.error('Update cover error:', error);
+    res.status(500).json({ error: 'Server error while updating cover photo' });
   }
 });
 
@@ -159,6 +176,95 @@ router.put('/privacy', auth, [
   } catch (error) {
     console.error('Update privacy error:', error);
     res.status(500).json({ error: 'Server error while updating privacy settings' });
+  }
+});
+
+// Block a user
+router.post('/block', auth, [
+  body('userId').isMongoId().withMessage('Invalid user ID')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    const { userId } = req.body;
+    if (String(userId) === String(req.user._id)) return res.status(400).json({ error: 'Cannot block yourself' });
+    const current = await User.findById(req.user._id);
+    if (!current.blockedUsers.includes(userId)) current.blockedUsers.push(userId);
+    // Remove from friends both sides
+    current.friends.pull(userId);
+    const other = await User.findById(userId);
+    if (other) {
+      other.friends.pull(req.user._id);
+      await other.save();
+    }
+    await current.save();
+    res.json({ blockedUsers: current.blockedUsers });
+  } catch (error) {
+    console.error('Block user error:', error);
+    res.status(500).json({ error: 'Server error while blocking user' });
+  }
+});
+
+// Unblock a user
+router.post('/unblock', auth, [
+  body('userId').isMongoId().withMessage('Invalid user ID')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    const { userId } = req.body;
+    const current = await User.findById(req.user._id);
+    current.blockedUsers.pull(userId);
+    await current.save();
+    res.json({ blockedUsers: current.blockedUsers });
+  } catch (error) {
+    console.error('Unblock user error:', error);
+    res.status(500).json({ error: 'Server error while unblocking user' });
+  }
+});
+
+// Save/bookmark a post
+router.post('/saved', auth, [
+  body('postId').isMongoId().withMessage('Invalid post ID')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    const { postId } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user.savedPosts.includes(postId)) user.savedPosts.push(postId);
+    await user.save();
+    res.json({ savedPosts: user.savedPosts });
+  } catch (error) {
+    console.error('Save post error:', error);
+    res.status(500).json({ error: 'Server error while saving post' });
+  }
+});
+
+// Unsave a post
+router.delete('/saved/:postId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.savedPosts.pull(req.params.postId);
+    await user.save();
+    res.json({ savedPosts: user.savedPosts });
+  } catch (error) {
+    console.error('Unsave post error:', error);
+    res.status(500).json({ error: 'Server error while unsaving post' });
+  }
+});
+
+// Get saved posts
+router.get('/saved', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'savedPosts',
+      populate: { path: 'author', select: 'firstName lastName avatar' }
+    });
+    res.json(user.savedPosts || []);
+  } catch (error) {
+    console.error('Get saved posts error:', error);
+    res.status(500).json({ error: 'Server error while fetching saved posts' });
   }
 });
 

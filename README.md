@@ -14,6 +14,12 @@ A modern, decentralized social media platform built with React.js and Express.js
 - RESTful API design
 - MongoDB integration with Mongoose
 - Rate limiting and security middleware
+- Reactions (like, love, care, haha, wow, sad, angry)
+- Comment likes and threaded replies
+- Shares with reference to original posts
+- Saved posts (bookmarks)
+- Block/unblock users and feed filtering
+- Cover photos and avatars
 
 ### Frontend (React.js)
 - Modern UI with styled-components
@@ -25,6 +31,9 @@ A modern, decentralized social media platform built with React.js and Express.js
 - Real-time updates
 - Infinite scrolling for posts
 - Image upload and preview
+ - Post composer, profile view, friends management
+ - Basic saved posts list
+ - Reaction toggles and comment actions
 
 ## Project Structure
 
@@ -111,8 +120,19 @@ palebook/
 
 4. Start the development server:
    ```bash
-   npm start
+  npm start
+  ```
+
+### E2E Tests (Playwright)
+1. Start backend and frontend locally (defaults: backend on 5000, frontend on 3000)
+2. In the `tests/` directory, install and run Playwright tests:
+   ```bash
+   cd tests
+   npm install
+   npx playwright install
+   npm run test:e2e
    ```
+   Set `E2E_BASE_URL` to point to your frontend if different from `http://localhost:3000`.
 
 ## API Endpoints
 
@@ -129,7 +149,12 @@ palebook/
 - GET `/api/posts/user/:userId` - Get user posts
 - POST `/api/posts/:postId/like` - Like/unlike a post
 - POST `/api/posts/:postId/comment` - Add comment to post
+- POST `/api/posts/:postId/comments/:commentId/like` - Like/unlike a comment
+- POST `/api/posts/:postId/comments/:commentId/reply` - Reply to a comment
+- POST `/api/posts/:postId/comments/:commentId/replies/:replyId/like` - Like/unlike a reply
 - DELETE `/api/posts/:postId` - Delete a post
+- POST `/api/posts/:postId/react` - React to post with a type
+- POST `/api/posts/:postId/share` - Share a post
 
 ### Friends
 - POST `/api/friends/request` - Send friend request
@@ -142,8 +167,31 @@ palebook/
 ### Users
 - GET `/api/users/:userId` - Get user profile
 - PUT `/api/users/profile` - Update user profile
+- PUT `/api/users/cover` - Update cover photo
 - GET `/api/users/search/:query` - Search users
 - PUT `/api/users/privacy` - Update privacy settings
+- POST `/api/users/block` - Block a user
+- POST `/api/users/unblock` - Unblock a user
+- POST `/api/users/saved` - Save/bookmark a post
+- DELETE `/api/users/saved/:postId` - Unsave a post
+- GET `/api/users/saved` - List saved posts
+
+### Notifications
+- GET `/api/notifications` - List notifications with unread count
+- POST `/api/notifications/:id/read` - Mark a notification read
+- POST `/api/notifications/read-all` - Mark all notifications read
+
+### Pages
+- GET `/api/pages` - List pages
+- POST `/api/pages` - Create page
+- POST `/api/pages/:id/follow` - Follow page
+- DELETE `/api/pages/:id/follow` - Unfollow page
+
+### Groups
+- GET `/api/groups` - List groups
+- POST `/api/groups` - Create group
+- POST `/api/groups/:id/join` - Join group
+- DELETE `/api/groups/:id/leave` - Leave group
 
 ## Technologies Used
 

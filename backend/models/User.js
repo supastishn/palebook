@@ -53,6 +53,11 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // Users this user has blocked
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   friendRequests: [{
     from: {
       type: mongoose.Schema.Types.ObjectId,
@@ -70,6 +75,26 @@ const userSchema = new mongoose.Schema({
   lastSeen: {
     type: Date,
     default: Date.now
+  },
+  // Saved/bookmarked posts
+  savedPosts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
+  // Followed pages
+  followedPages: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Page'
+  }],
+  // Group memberships
+  groups: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group'
+  }],
+  // Cover photo URL
+  coverPhoto: {
+    type: String,
+    default: ''
   },
   privacy: {
     profile: {

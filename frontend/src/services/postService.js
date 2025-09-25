@@ -39,12 +39,20 @@ const postService = {
     return api.post(`/posts/${postId}/like`);
   },
 
+  reactPost: (postId, type = 'like') => {
+    return api.post(`/posts/${postId}/react`, { type });
+  },
+
   addComment: (postId, content) => {
     return api.post(`/posts/${postId}/comment`, { content });
   },
 
   deletePost: (postId) => {
     return api.delete(`/posts/${postId}`);
+  },
+
+  sharePost: (postId, content = '', privacy = 'friends') => {
+    return api.post(`/posts/${postId}/share`, { content, privacy });
   },
 };
 

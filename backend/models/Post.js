@@ -6,6 +6,10 @@ const postSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Optional: if this is a page post
+  page: { type: mongoose.Schema.Types.ObjectId, ref: 'Page' },
+  // Optional: if this is a group post
+  group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group' },
   content: {
     type: String,
     required: true,
@@ -18,6 +22,11 @@ const postSchema = new mongoose.Schema({
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
+    },
+    type: {
+      type: String,
+      enum: ['like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'],
+      default: 'like'
     },
     createdAt: {
       type: Date,
@@ -38,7 +47,20 @@ const postSchema = new mongoose.Schema({
     createdAt: {
       type: Date,
       default: Date.now
-    }
+    },
+    likes: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      createdAt: { type: Date, default: Date.now }
+    }],
+    replies: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      content: { type: String, required: true, maxlength: 1000 },
+      createdAt: { type: Date, default: Date.now },
+      likes: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        createdAt: { type: Date, default: Date.now }
+      }]
+    }]
   }],
   shares: [{
     user: {
@@ -50,6 +72,10 @@ const postSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  originalPost: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  },
   privacy: {
     type: String,
     enum: ['public', 'friends', 'private'],

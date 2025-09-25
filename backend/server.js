@@ -5,12 +5,17 @@ const morgan = require('morgan');
 const mongoose = require('mongoose');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const postRoutes = require('./routes/posts');
 const friendRoutes = require('./routes/friends');
+const notificationRoutes = require('./routes/notifications');
+const pageRoutes = require('./routes/pages');
+const groupRoutes = require('./routes/groups');
 
 const app = express();
 const server = createServer(app);
@@ -21,6 +26,9 @@ const io = new Server(server, {
   }
 });
 
+// Make io accessible in routes via req.app.get('io')
+app.set('io', io);
+
 // Middleware
 app.use(helmet());
 app.use(cors({
@@ -30,6 +38,23 @@ app.use(cors({
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Ensure upload directories exist
+const uploadDirs = [
+  path.join(__dirname, '..', 'uploads'),
+  path.join(__dirname, '..', 'uploads', 'posts'),
+  path.join(__dirname, '..', 'uploads', 'avatars'),
+];
+uploadDirs.forEach((dir) => {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    // no-op
+  }
+});
+
+// Static file serving for uploaded assets
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // MongoDB Connection (only connect if not already connected by tests)
 if (!mongoose.connections || mongoose.connections.length === 0 || mongoose.connection.readyState === 0) {
@@ -46,6 +71,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/pages', pageRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Socket.IO for real-time features
 io.on('connection', (socket) => {
